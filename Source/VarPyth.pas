@@ -197,13 +197,8 @@ type
       const AName: string): Boolean; override;
     function SetProperty({$IFDEF FPC}var{$ELSE}const{$ENDIF} V: TVarData; const AName: string;
       const Value: TVarData): Boolean; override;
-    {$IFDEF DELPHIXE7_OR_HIGHER}
     procedure DispInvoke(Dest: PVarData;
-      [Ref] const Source: TVarData; CallDesc: PCallDesc; Params: Pointer);override;
-    {$ELSE}
-    procedure DispInvoke(Dest: PVarData;
-       var Source: TVarData; CallDesc: PCallDesc; Params: Pointer);override;
-    {$ENDIF}
+      const Source: TVarData; CallDesc: PCallDesc; Params: Pointer);override;
   end;
 
 var
@@ -1138,13 +1133,8 @@ begin
 end;
 {$IFEND}
 
-{$IFDEF DELPHIXE7_OR_HIGHER}
 procedure TPythonVariantType.DispInvoke(Dest: PVarData;
-  [Ref] const Source: TVarData; CallDesc: PCallDesc; Params: Pointer);
-{$ELSE}
-procedure TPythonVariantType.DispInvoke(Dest: PVarData;
-   var Source: TVarData; CallDesc: PCallDesc; Params: Pointer);
-{$ENDIF}
+  const Source: TVarData; CallDesc: PCallDesc; Params: Pointer);
 {$IFDEF PATCHEDSYSTEMDISPINVOKE}
   //  Modified to correct memory leak QC102387 / RSP-23093
   procedure PatchedFinalizeDispatchInvokeArgs(CallDesc: PCallDesc; const Args: TVarDataArray; OrderLTR : Boolean);
@@ -1200,7 +1190,7 @@ procedure TPythonVariantType.DispInvoke(Dest: PVarData;
     // Grab the identifier
     LArgCount := CallDesc^.ArgCount;
     PIdent := @CallDesc^.ArgTypes[LArgCount];
-    LIdent := FixupIdent( UTF8ToString(MarshaledAString(PIdent)) );
+    LIdent := FixupIdent( UTF8ToString(PAnsiChar(PIdent)) );
     if LArgCount > 0 then begin
       SetLength(Strings, LArgCount);
      {$IFNDEF DELPHI10_4_OR_HIGHER}
@@ -1390,6 +1380,7 @@ function TPythonVariantType.EvalPython(const V: TVarData;
     begin
       PyErr_Clear;
       _key := VarDataToPythonObject(AKey);
+      Result := nil; // Removo o warning
       if not Assigned(_key) then
         raise Exception.Create(SCantConvertKeyToPythonObject);
       try
